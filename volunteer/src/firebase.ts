@@ -8,6 +8,7 @@ import {
     createUserWithEmailAndPassword,
     sendPasswordResetEmail,
     signOut,
+    FacebookAuthProvider
 } from "firebase/auth";
 
 import {
@@ -20,12 +21,12 @@ import {
 } from "firebase/firestore";
 
 const firebaseConfig = {
-    apiKey: "",
-    authDomain: "",
-    projectId: "",
-    storageBucket: "",
-    messagingSenderId: "",
-    appId: ""
+    apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
+    authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+    projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
+    storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
+    appId: process.env.REACT_APP_FIREBASE_APP_ID
 };
 
 const app = initializeApp(firebaseConfig);
@@ -33,6 +34,28 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
 const db = getFirestore(app);
+
+const facebookProvider = new FacebookAuthProvider();
+
+const signInWithFacebook = async () => {
+    try {
+        const res = await signInWithPopup(auth, facebookProvider);
+        const user = res.user;
+        const q = query(collection(db, "users"), where("uid", "==", user.uid));
+        const docs = await getDocs(q);
+        if (docs.docs.length === 0) {
+            await addDoc(collection(db, "users"), {
+                uid: user.uid,
+                name: user.displayName,
+                authProvider: "google",
+                email: user.email,
+            });
+        }
+    } catch (err: any) {
+        console.error(err);
+        alert(err.message);
+    }
+};
 
 const googleProvider = new GoogleAuthProvider();
 
@@ -99,6 +122,7 @@ export {
     auth,
     db,
     signInWithGoogle,
+    signInWithFacebook,
     logInWithEmailAndPassword,
     registerWithEmailAndPassword,
     sendPasswordReset,
